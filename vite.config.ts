@@ -4,7 +4,13 @@ import laravel from 'laravel-vite-plugin';
 import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
 
+const host = "project-management-app.test";
+
 export default defineConfig({
+    server: {
+        host,
+        hmr: {host}
+    },
     plugins: [
         laravel({
             input: ['resources/css/app.css', 'resources/js/app.tsx'],
