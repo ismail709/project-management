@@ -38,7 +38,7 @@ export default function Backlog({ project, tasks, taskTypes }) {
     return (
         <>
             <div className="flex grow flex-col gap-4 overflow-auto p-4">
-                <Heading title="Backlog" description="Here you can manage your tasks." />
+                <Heading title="Backlog" description="Here you can manage your list of tasks." />
                 <div className="flex grow flex-col gap-2">
                     <div className="flex items-center justify-between">
                         <p className="text-sm">Product Backlog</p>

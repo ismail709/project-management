@@ -20,8 +20,10 @@ export default function Sprints({ project, tasks, sprints }) {
     const [isAddSprintModalOpen, setIsAddSprintModalOpen] = useState(false);
     const [AddSprintErrors, setAddSprintErrors] = useState(null);
     const [selectedSprint, setSelectedSprint] = useState(null);
-    const [selectedSprintTasks, setSelectedSprintTasks] = useState([]);
-    const [productBacklog, setProductBacklog] = useState(tasks.filter((task) => task.sprint_id == null));
+    const [tasksList, setTasksList] = useState({
+        'product-backlog': tasks.filter((task) => task.sprint_id == null),
+        'sprint-backlog': [],
+    });
     const sensors = useSensors(useSensor(PointerSensor));
 
     useEffect(() => {
@@ -29,13 +31,13 @@ export default function Sprints({ project, tasks, sprints }) {
     }, [isAddSprintModalOpen]);
 
     useEffect(() => {
-        console.log('SELECTED SPRINT CHNAGED', selectedSprint);
-        if (selectedSprint) setSelectedSprintTasks(sprints.find((s) => s.id == selectedSprint).tasks);
+        if (selectedSprint)
+            setTasksList((prevList) => ({ ...prevList, 'sprint-backlog': sprints.find((sprint) => sprint.id == selectedSprint).tasks }));
     }, [selectedSprint]);
 
     const findContainer = (id) => {
-        if (['product-backlog', 'sprint-backlog'].includes(id)) return id;
-        return productBacklog.some((task) => task.id == id) ? 'product-backlog' : 'sprint-backlog';
+        if (Object.keys(tasksList).includes(id)) return id;
+        return Object.entries(tasksList).find(([key, tasks]) => tasks.some((task) => task.id == id))[0];
     };
 
     const handleDragStart = (event) => {
@@ -52,19 +54,22 @@ export default function Sprints({ project, tasks, sprints }) {
 
         if (activeContainer == overContainer) return;
 
-        if (overContainer == 'product-backlog') {
-            const newTask = selectedSprintTasks.find((task) => task.id == active.id);
-            if (newTask) {
-                setProductBacklog((prev) => [...prev, newTask]);
-                setSelectedSprintTasks((prev) => prev.filter((task) => task.id != active.id));
-            }
-        } else {
-            const newTask = productBacklog.find((task) => task.id == active.id);
-            if (newTask) {
-                setSelectedSprintTasks((prev) => [...prev, newTask]);
-                setProductBacklog((prev) => prev.filter((task) => task.id != active.id));
-            }
-        }
+        setTasksList((prevList) => {
+            // active task
+            const activeTask = prevList[activeContainer].find((task) => task.id == active.id);
+
+            // updated source list
+            const updatedSourceList = prevList[activeContainer].filter((task) => task.id != activeTask.id);
+
+            // updated target list
+            const updatedTargetList = [...prevList[overContainer], activeTask];
+
+            return {
+                ...prevList,
+                [activeContainer]: updatedSourceList,
+                [overContainer]: updatedTargetList,
+            };
+        });
     };
 
     const handleDragEnd = (event) => {
@@ -73,11 +78,10 @@ export default function Sprints({ project, tasks, sprints }) {
         if (!over) return;
 
         const overContainer = findContainer(over.id);
-        if (overContainer == 'product-backlog') {
-            if (selectedSprint) router.put(route('tasks.update', active.id), { sprint_id: null }, { preserveState: true });
-        } else {
-            router.put(route('tasks.update', active.id), { sprint_id: selectedSprint }, { preserveState: true });
-        }
+
+        const sprint_id = overContainer == 'sprint-backlog' ? selectedSprint : null;
+
+        router.put(route('tasks.update', active.id), { sprint_id }, { preserveState: true });
     };
 
     return (
@@ -104,7 +108,7 @@ export default function Sprints({ project, tasks, sprints }) {
                             <p className="py-2">Product Backlog</p>
                             <div className="flex items-center justify-between py-2">
                                 <p className="">Sprint Backlog</p>
-                                <div className='flex items-center gap-2'>
+                                <div className="flex items-center gap-2">
                                     <Select className="capitalize" onChange={(e) => setSelectedSprint(e.target.value)} defaultValue="">
                                         <option value="" disabled>
                                             Select Sprint
@@ -116,20 +120,26 @@ export default function Sprints({ project, tasks, sprints }) {
                                         ))}
                                     </Select>
                                     {selectedSprint && (
-                                        <Link className='bg-red-600 hover:bg-red-500 p-1 rounded-md cursor-pointer' preserveState={false} method='delete' href={route('sprints.destroy', selectedSprint)} onSuccess={() => setSelectedSprint(null)}>
-                                            <Trash2 color='white' />
+                                        <Link
+                                            className="cursor-pointer rounded-md bg-red-600 p-1 hover:bg-red-500"
+                                            preserveState={false}
+                                            method="delete"
+                                            href={route('sprints.destroy', selectedSprint)}
+                                            onSuccess={() => setSelectedSprint(null)}
+                                        >
+                                            <Trash2 color="white" />
                                         </Link>
                                     )}
                                 </div>
                             </div>
                             <Droppable id="product-backlog" className="h-full">
                                 <div className="flex h-full flex-col gap-2 rounded-md bg-gray-200 p-2">
-                                    {productBacklog.map((task, i) => (
+                                    {tasksList['product-backlog'].map((task, i) => (
                                         <Draggable id={task.id} key={i}>
                                             <Task canEdit={false} className="task-item" task={task} />
                                         </Draggable>
                                     ))}
-                                    {!productBacklog.length && (
+                                    {!tasksList['product-backlog'].length && (
                                         <div className="flex grow items-center justify-center">
                                             <p className="text-center text-xl text-gray-500">No tasks left</p>
                                         </div>
@@ -146,13 +156,12 @@ export default function Sprints({ project, tasks, sprints }) {
                             {selectedSprint && (
                                 <Droppable id="sprint-backlog" className="h-full">
                                     <div className="flex h-full flex-col gap-2 rounded-md bg-gray-200 p-2">
-                                        {selectedSprintTasks.length > 0 &&
-                                            selectedSprintTasks.map((task, i) => (
-                                                <Draggable id={task.id} key={i}>
-                                                    <Task canEdit={false} className="task-item" task={task} />
-                                                </Draggable>
-                                            ))}
-                                        {!selectedSprintTasks.length && (
+                                        {tasksList['sprint-backlog'].map((task, i) => (
+                                            <Draggable id={task.id} key={i}>
+                                                <Task canEdit={false} className="task-item" task={task} />
+                                            </Draggable>
+                                        ))}
+                                        {!tasksList['sprint-backlog'].length && (
                                             <div className="flex grow items-center justify-center">
                                                 <p className="text-center text-xl text-gray-500">Drag & Drop Tasks Here</p>
                                             </div>

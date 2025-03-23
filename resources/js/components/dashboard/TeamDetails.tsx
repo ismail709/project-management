@@ -5,9 +5,11 @@ import Heading from '../ui/Heading';
 import Label from '../ui/Label';
 import Textarea from '../ui/Textarea';
 
-export default function TaskDetails({ task, className, ...props }) {
+export default function TeamDetails({ team, className, ...props }) {
     const { project } = usePage().props;
     
+    console.log(team)
+    return null;
     return (
         <div className={cx('flex w-80 flex-col gap-4 p-4 text-sm border-l-2 border-gray-200 h-full', className)}>
             <Heading title={task.task_title} />
