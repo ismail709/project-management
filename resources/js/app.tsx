@@ -1,15 +1,19 @@
 import '../css/app.css';
 
 import { createInertiaApp } from '@inertiajs/react';
-import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createRoot } from 'react-dom/client';
-import { initializeTheme } from './hooks/use-appearance';
+import AppLayout from './layouts/app-layout';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
 createInertiaApp({
     title: (title) => `${title} - ${appName}`,
-    resolve: (name) => resolvePageComponent(`./pages/${name}.tsx`, import.meta.glob('./pages/**/*.tsx')),
+    resolve: (name) => {
+        const pages = import.meta.glob('./pages/**/*.tsx', { eager: true });
+        let page = pages[`./pages/${name}.tsx`];
+        page.default.layout = page.default.layout || (page => <AppLayout children={page} />)
+        return page;
+    },
     setup({ el, App, props }) {
         const root = createRoot(el);
 
@@ -26,9 +30,6 @@ createInertiaApp({
         includeCSS: true,
 
         // Whether the NProgress spinner will be shown...
-        showSpinner: true,
+        showSpinner: false,
     },
 });
-
-// This will set light / dark mode on load...
-initializeTheme();

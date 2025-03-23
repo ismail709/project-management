@@ -131,6 +131,17 @@ class TaskResource extends Resource
             ->actions([
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\Action::make('assign_to')
+                    ->form(fn($record) => [
+                        Forms\Components\Select::make('user_id')
+                            ->label('User')
+                            ->options(
+                                $record->project->users->pluck('name', 'id')
+                            )
+                    ])
+                    ->action(fn($data, $record) => $record->assignedTo()->attach(
+                        $data['user_id']
+                    )),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

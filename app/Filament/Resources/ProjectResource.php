@@ -29,28 +29,7 @@ class ProjectResource extends Resource
                     ->required(),
                 Forms\Components\TextInput::make('project_name')
                     ->required()
-                    ->maxLength(255)
-                    ->live(true)
-                    ->afterStateUpdated(function (Set $set, string $state) {
-                        if ($state) {
-                            // project key init
-                            $projectKey = "";
-                            // get words
-                            $words = explode(" ", $state);
-                            // get initial characters
-                            foreach ($words as $word) {
-                                $projectKey .= strtoupper(substr($word, 0, 1));
-                            }
-                            // generate random number
-                            do {
-                                $rand_int = rand(100, 999);
-                            } while (Project::where("project_key", $projectKey . '-' . $rand_int)->exists());
-                            // set the project key
-                            $set('project_key', $projectKey . '-' . $rand_int);
-                        }
-                    }),
-                Forms\Components\TextInput::make('project_key')
-                    ->readOnly(),
+                    ->maxLength(255),
                 Forms\Components\Select::make('project_type_id')->relationship('projectType', 'project_type_name')
                     ->required(),
                 Forms\Components\Textarea::make('project_description')

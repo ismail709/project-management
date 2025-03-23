@@ -4,6 +4,7 @@ import laravel from 'laravel-vite-plugin';
 import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
 
+// const host = "1sbmv5z3mm.sharedwithexpose.com";
 const host = "project-management-app.test";
 
 export default defineConfig({
@@ -26,6 +27,7 @@ export default defineConfig({
     resolve: {
         alias: {
             'ziggy-js': resolve(__dirname, 'vendor/tightenco/ziggy'),
+        
         },
     },
 });
